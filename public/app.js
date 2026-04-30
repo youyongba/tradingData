@@ -3,11 +3,27 @@
   const $ = (sel) => document.querySelector(sel);
   const fmt = (n, d = 2) => (n == null || isNaN(n)) ? '—'
     : Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-  const fmtTime = (ms) => {
-    const d = new Date(ms);
-    const p = (x) => String(x).padStart(2, '0');
-    return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-  };
+
+  // ==== 时间：统一东八区 (UTC+8) ====
+  const TZ_OFFSET_SEC = 8 * 3600; // 北京时间相对 UTC 的偏移（秒）
+
+  /** 把 unix 秒(UTC) 转成"伪 UTC"——给 lightweight-charts 显示出来就是北京时间 */
+  const toChartTime = (utcSec) => utcSec + TZ_OFFSET_SEC;
+
+  /** 把图表内部的伪 UTC 秒还原为真实 UTC 秒 */
+  const fromChartTime = (chartSec) => chartSec - TZ_OFFSET_SEC;
+
+  /** 北京时间的 HH:mm:ss */
+  const fmtTime = (ms) => new Date(ms).toLocaleTimeString('zh-CN', {
+    timeZone: 'Asia/Shanghai', hour12: false,
+  });
+
+  /** 北京时间的 yyyy-MM-dd HH:mm */
+  const fmtDateTime = (ms) => new Date(ms).toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
 
   // ====== 图表 ======
   const chartEl = $('#chart');
@@ -17,6 +33,13 @@
     timeScale: { timeVisible: true, secondsVisible: false, borderColor: '#232a38' },
     rightPriceScale: { borderColor: '#232a38' },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    localization: {
+      // 鼠标悬停显示完整北京时间
+      timeFormatter: (chartSec) => {
+        const ms = fromChartTime(chartSec) * 1000;
+        return fmtDateTime(ms) + ' (UTC+8)';
+      },
+    },
     autoSize: true,
   });
   const candleSeries = chart.addCandlestickSeries({
@@ -268,8 +291,9 @@
       const r = await fetch('/api/klines?symbol=' + encodeURIComponent(symbol) + '&limit=300');
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
-      candleSeries.setData(j.klines);
-      state.currentKline = j.klines[j.klines.length - 1] || null;
+      const klines = j.klines.map((k) => ({ ...k, time: toChartTime(k.time) }));
+      candleSeries.setData(klines);
+      state.currentKline = klines[klines.length - 1] || null;
       chart.timeScale().fitContent();
       // 切换 symbol 后重新画该 symbol 对应的监测点价位线
       if (typeof refreshWatchLines === 'function') refreshWatchLines();
@@ -317,7 +341,7 @@
       if (state.klineSymbol === d.symbol) {
         state.markPrice = d.price;
         $('#markPrice').textContent = d.symbol + ' ' + fmt(d.price, 2);
-        applyTickToKline(d.price, Math.floor((d.time || Date.now()) / 1000));
+        applyTickToKline(d.price, toChartTime(Math.floor((d.time || Date.now()) / 1000)));
         const plan = state.plans.get(state.selectedId);
         if (plan) updatePnl(plan);
       }
@@ -326,9 +350,11 @@
       const k = JSON.parse(e.data);
       if (state.klineSymbol !== k.symbol) return;
       // 保护：lightweight-charts 的 update() 不允许 time < 当前最后一根
+      if (typeof k.time !== 'number') return;
+      const tChart = toChartTime(k.time);
       const lastTime = state.currentKline?.time ?? 0;
-      if (typeof k.time !== 'number' || k.time < lastTime) return;
-      const bar = { time: k.time, open: k.open, high: k.high, low: k.low, close: k.close };
+      if (tChart < lastTime) return;
+      const bar = { time: tChart, open: k.open, high: k.high, low: k.low, close: k.close };
       try {
         candleSeries.update(bar);
         state.currentKline = bar;
@@ -558,4 +584,9 @@
   loadWatches();
   connectSSE();
   syncDefaultSymbolToForm();
+
+  // 顶栏北京时间走秒
+  const updateClock = () => { $('#serverTime').textContent = fmtTime(Date.now()); };
+  updateClock();
+  setInterval(updateClock, 1000);
 })();

@@ -44,12 +44,25 @@ body {
   border: 1px solid var(--border); border-radius: 6px;
   padding: 4px 8px; outline: none;
 }
+.actions { display: flex; align-items: center; gap: 8px; }
 .actions button {
   background: var(--panel); color: var(--text);
   border: 1px solid var(--border); border-radius: 6px;
   padding: 4px 10px; cursor: pointer;
 }
 .actions button:hover { background: var(--panel-2); }
+.tz-badge {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 6px; border-radius: 4px;
+  background: rgba(79,140,255,.15);
+  color: var(--accent);
+  border: 1px solid rgba(79,140,255,.3);
+}
+.server-time {
+  font-size: 12px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 64px; text-align: right;
+}
 
 /* ===== Layout ===== */
 .layout {
