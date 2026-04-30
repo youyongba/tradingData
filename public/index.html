@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>币安合约 1H 预警系统</title>
+<link rel="stylesheet" href="/styles.css" />
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">⚡ 币安合约 1H 预警</div>
+    <div class="status">
+      <span id="conn" class="dot off"></span>
+      <span id="connText">未连接</span>
+      <span class="sep">·</span>
+      <select id="planSelect"></select>
+      <span class="sep">·</span>
+      <span id="markPrice" class="mark">—</span>
+    </div>
+    <div class="actions">
+      <button id="muteBtn" title="切换静音">🔊</button>
+      <button id="testSoundBtn" title="测试音效">♪</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="chart-wrap">
+      <div id="emptyHint" class="empty-hint">
+        <div class="empty-title">当前没有活跃计划</div>
+        <div class="empty-sub">默认显示 <b id="emptySymbol">BTCUSDT</b> · 1H · 通过 webhook 提交计划即可开始监控</div>
+        <pre class="empty-code">curl -X POST http://localhost:8787/webhook \
+  -H "Authorization: Bearer &lt;AUTH_TOKEN&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","side":"LONG","entry":64500,"tp1":65000,"tp2":65500,"tp3":66000,"sl":64000}'</pre>
+        <div class="empty-tip">小贴士：Authorization 一定要单行，否则 header 会被截断</div>
+        <div class="empty-symbol-row">
+          切换标的:
+          <input id="defaultSymbolInput" value="BTCUSDT" />
+          <button id="defaultSymbolApply">加载</button>
+        </div>
+      </div>
+      <div id="planBadge" class="plan-badge hidden">
+        <div class="row">
+          <span id="badgeSide" class="side long">多</span>
+          <span id="badgeSymbol" class="symbol">—</span>
+          <span id="badgeState" class="state pending">待入场</span>
+        </div>
+        <div class="row metrics">
+          <div class="kv"><span>入场</span><b id="badgeEntry">—</b></div>
+          <div class="kv tp"><span>TP1</span><b id="badgeTp1">—</b><i id="badgeTp1Pct">—</i></div>
+          <div class="kv tp"><span>TP2</span><b id="badgeTp2">—</b><i id="badgeTp2Pct">—</i></div>
+          <div class="kv tp"><span>TP3</span><b id="badgeTp3">—</b><i id="badgeTp3Pct">—</i></div>
+          <div class="kv sl"><span>SL</span><b id="badgeSl">—</b><i id="badgeSlPct">—</i></div>
+        </div>
+        <div class="row rr">
+          <div class="rr-item"><span>RR1</span><b id="badgeRr1">—</b></div>
+          <div class="rr-item"><span>RR2</span><b id="badgeRr2">—</b></div>
+          <div class="rr-item"><span>RR3</span><b id="badgeRr3">—</b></div>
+          <div class="rr-item live"><span>盈亏</span><b id="badgePnl">—</b></div>
+        </div>
+      </div>
+      <div id="chart"></div>
+    </section>
+
+    <aside class="side-panel">
+      <div class="panel">
+        <div class="panel-title">活跃计划</div>
+        <ul id="planList" class="plan-list"></ul>
+      </div>
+      <div class="panel">
+        <div class="panel-title">事件流</div>
+        <ul id="eventList" class="event-list"></ul>
+      </div>
+      <div class="panel">
+        <div class="panel-title">已完成 · 盈亏记录</div>
+        <ul id="tradeList" class="trade-list"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/sound.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

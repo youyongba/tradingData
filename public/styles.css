@@ -1,0 +1,248 @@
+:root {
+  --bg: #0b0e14;
+  --bg-2: #131722;
+  --panel: #161b25;
+  --panel-2: #1c2230;
+  --border: #232a38;
+  --text: #d1d4dc;
+  --text-dim: #8b93a7;
+  --accent: #4f8cff;
+  --green: #26a69a;
+  --green-2: #2ecc71;
+  --red: #ef5350;
+  --red-2: #e74c3c;
+  --yellow: #f0b90b;
+  --blue: #3498db;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* ===== Topbar ===== */
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 16px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+}
+.brand { font-weight: 700; letter-spacing: .5px; }
+.status { display: flex; align-items: center; gap: 8px; flex: 1; }
+.status .sep { color: var(--text-dim); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.off { background: var(--red); }
+.dot.on { background: var(--green-2); box-shadow: 0 0 8px var(--green-2); }
+.mark { font-variant-numeric: tabular-nums; color: var(--yellow); font-weight: 600; }
+#planSelect {
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 8px; outline: none;
+}
+.actions button {
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 10px; cursor: pointer;
+}
+.actions button:hover { background: var(--panel-2); }
+
+/* ===== Layout ===== */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 12px;
+  padding: 12px;
+  height: calc(100vh - 49px);
+}
+.chart-wrap {
+  position: relative;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+#chart { width: 100%; height: 100%; }
+.side-panel {
+  display: flex; flex-direction: column; gap: 12px;
+  overflow: hidden;
+}
+.panel {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 120px;
+}
+.panel-title {
+  padding: 8px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text-dim);
+  font-size: 12px;
+  letter-spacing: .5px;
+}
+
+/* ===== 空态提示（无活跃计划时） ===== */
+.empty-hint {
+  position: absolute; top: 12px; left: 12px;
+  background: rgba(22,27,37,.92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  z-index: 6;
+  max-width: 560px;
+  backdrop-filter: blur(6px);
+}
+.empty-hint.hidden { display: none; }
+.empty-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.empty-sub { color: var(--text-dim); font-size: 12px; margin-bottom: 10px; }
+.empty-sub b { color: var(--yellow); }
+.empty-code {
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px; margin: 0 0 8px; font-size: 11px;
+  white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, Menlo, monospace;
+}
+.empty-tip { font-size: 11px; color: var(--yellow); margin-bottom: 10px; }
+.empty-symbol-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+.empty-symbol-row input {
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 3px 8px; outline: none; width: 110px; text-transform: uppercase;
+}
+.empty-symbol-row button {
+  background: var(--accent); color: #fff; border: 0; border-radius: 4px;
+  padding: 3px 10px; cursor: pointer;
+}
+
+/* ===== Plan Badge (chart overlay) ===== */
+.plan-badge {
+  position: absolute; top: 12px; left: 12px;
+  background: rgba(22,27,37,.92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  z-index: 5;
+  min-width: 320px;
+  backdrop-filter: blur(6px);
+}
+.plan-badge.hidden { display: none; }
+.plan-badge .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.plan-badge .row + .row { margin-top: 8px; }
+.plan-badge .side {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.plan-badge .side.long  { background: rgba(38,166,154,.2); color: var(--green-2); border: 1px solid var(--green); }
+.plan-badge .side.short { background: rgba(239,83,80,.2);  color: var(--red-2);   border: 1px solid var(--red); }
+.plan-badge .symbol { font-weight: 700; font-size: 14px; }
+.plan-badge .state {
+  font-size: 11px; padding: 2px 6px; border-radius: 4px;
+  background: var(--panel-2); color: var(--text-dim);
+}
+.plan-badge .state.pending    { color: var(--text-dim); }
+.plan-badge .state.running    { background: rgba(79,140,255,.15); color: var(--accent); }
+.plan-badge .state.running_be { background: rgba(240,185,11,.15); color: var(--yellow); }
+.plan-badge .state.closed     { background: rgba(38,166,154,.15); color: var(--green-2); }
+
+.plan-badge .metrics { gap: 6px; }
+.plan-badge .kv {
+  display: flex; flex-direction: column;
+  background: var(--panel);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  min-width: 70px;
+}
+.plan-badge .kv > span { font-size: 10px; color: var(--text-dim); }
+.plan-badge .kv > b    { font-variant-numeric: tabular-nums; }
+.plan-badge .kv > i    { font-style: normal; font-size: 10px; color: var(--text-dim); }
+.plan-badge .kv.tp     { border-color: rgba(38,166,154,.4); }
+.plan-badge .kv.tp > i { color: var(--green-2); }
+.plan-badge .kv.sl     { border-color: rgba(239,83,80,.4); }
+.plan-badge .kv.sl > i { color: var(--red-2); }
+
+.plan-badge .rr { gap: 8px; }
+.plan-badge .rr-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px;
+}
+.plan-badge .rr-item span { color: var(--text-dim); }
+.plan-badge .rr-item b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.plan-badge .rr-item.live b { color: var(--yellow); font-weight: 700; }
+
+/* ===== Lists ===== */
+.plan-list, .event-list, .trade-list {
+  list-style: none; margin: 0; padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.plan-list li, .event-list li, .trade-list li {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+}
+.plan-list li:hover { background: var(--panel); }
+.plan-list li.active { background: var(--panel-2); }
+.plan-list .pl-side {
+  font-weight: 700; padding: 1px 6px; border-radius: 3px; font-size: 10px;
+}
+.pl-side.long  { background: rgba(38,166,154,.2); color: var(--green-2); }
+.pl-side.short { background: rgba(239,83,80,.2);  color: var(--red-2); }
+.plan-list .pl-symbol { flex: 1; font-weight: 600; }
+.plan-list .pl-state  { font-size: 10px; color: var(--text-dim); }
+.plan-list .pl-cancel {
+  margin-left: 6px;
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 1px 6px; cursor: pointer; font-size: 11px;
+}
+.plan-list .pl-cancel:hover { color: var(--red-2); border-color: var(--red); }
+
+.event-list li { display: block; }
+.event-list .ev-time { color: var(--text-dim); margin-right: 6px; font-size: 10px; }
+.event-list .ev-tag {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 10px; font-weight: 700; margin-right: 6px;
+}
+.ev-tag.entry { background: rgba(79,140,255,.2); color: var(--accent); }
+.ev-tag.tp    { background: rgba(38,166,154,.2); color: var(--green-2); }
+.ev-tag.sl    { background: rgba(239,83,80,.2);  color: var(--red-2); }
+.ev-tag.be    { background: rgba(240,185,11,.2); color: var(--yellow); }
+.ev-tag.new   { background: rgba(155,155,155,.2); color: var(--text-dim); }
+
+.trade-list .tr-pnl.pos { color: var(--green-2); font-weight: 700; }
+.trade-list .tr-pnl.neg { color: var(--red-2); font-weight: 700; }
+.trade-list .tr-symbol { flex: 1; }
+.trade-list .tr-reason { color: var(--text-dim); font-size: 10px; }
+
+/* 闪烁 */
+@keyframes pulse-bg {
+  0%   { background: rgba(255,255,255,0); }
+  50%  { background: rgba(255,255,255,.06); }
+  100% { background: rgba(255,255,255,0); }
+}
+.flash { animation: pulse-bg 1.4s ease 3; }
+
+/* 触发瞬时全屏闪光 */
+.flash-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  opacity: 0; transition: opacity .15s;
+}
+.flash-overlay.show { opacity: .35; }
+.flash-overlay.entry { background: var(--accent); }
+.flash-overlay.tp    { background: var(--green-2); }
+.flash-overlay.sl    { background: var(--red-2); }
+.flash-overlay.be    { background: var(--yellow); }
