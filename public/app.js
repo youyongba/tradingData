@@ -316,10 +316,15 @@
     es.addEventListener('kline', (e) => {
       const k = JSON.parse(e.data);
       if (state.klineSymbol !== k.symbol) return;
+      // 保护：lightweight-charts 的 update() 不允许 time < 当前最后一根
+      const lastTime = state.currentKline?.time ?? 0;
+      if (typeof k.time !== 'number' || k.time < lastTime) return;
       const bar = { time: k.time, open: k.open, high: k.high, low: k.low, close: k.close };
-      candleSeries.update(bar);
-      if (!state.currentKline || k.time >= state.currentKline.time) {
+      try {
+        candleSeries.update(bar);
         state.currentKline = bar;
+      } catch (err) {
+        console.warn('candleSeries.update 失败:', err.message, bar);
       }
     });
     es.addEventListener('plan:new', (e) => {

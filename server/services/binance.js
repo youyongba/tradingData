@@ -282,11 +282,11 @@ class StreamManager {
     const symbols = Array.from(this.refCounts.keys());
     await Promise.all(symbols.map(async (sym) => {
       try {
-        const ks = await fetchKlines(sym, 2);
-        // 推送最近两根 K 线（一根已收盘 + 一根 in-progress），前端 update 会按 time 合并
-        for (const k of ks) {
-          bus.emit('kline', { symbol: sym, ...k, closed: false });
-        }
+        // 只取最新一根（in-progress 的当前 1H K 线）
+        // lightweight-charts 的 update() 不支持回写更早的 K 线
+        const ks = await fetchKlines(sym, 1);
+        const k = ks[ks.length - 1];
+        if (k) bus.emit('kline', { symbol: sym, ...k, closed: false });
       } catch (err) {
         log.warn(`轮询 ${sym} kline 失败: ${err.message}`);
       }
