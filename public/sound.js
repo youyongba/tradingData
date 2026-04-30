@@ -77,6 +77,13 @@
         { freq: 523, dur: 0.10, type: 'square', vol: 0.18, gap: 0.10 },
       ]);
     },
+    watch() {
+      // 监测点触发：清新双音
+      this._seq([
+        { freq: 740, dur: 0.10, type: 'sine', vol: 0.22, gap: 0.10 },
+        { freq: 988, dur: 0.18, type: 'sine', vol: 0.28, gap: 0.20 },
+      ]);
+    },
     test() { this.entry(); setTimeout(() => this.tp(), 700); setTimeout(() => this.sl(), 1500); },
   };
 

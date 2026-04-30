@@ -54,6 +54,8 @@
     klineSymbol: null,
     markPrice: null,
     currentKline: null, // 最新一根 K 线 { time, open, high, low, close }
+    watches: new Map(),       // id -> watch
+    watchLines: new Map(),    // id -> priceLine（仅当 watch.symbol === klineSymbol 时画线）
   };
 
   const HOUR_SEC = 3600;
@@ -269,9 +271,16 @@
       candleSeries.setData(j.klines);
       state.currentKline = j.klines[j.klines.length - 1] || null;
       chart.timeScale().fitContent();
+      // 切换 symbol 后重新画该 symbol 对应的监测点价位线
+      if (typeof refreshWatchLines === 'function') refreshWatchLines();
+      if (typeof syncDefaultSymbolToForm === 'function') syncDefaultSymbolToForm();
     } catch (err) {
       console.error('加载 K 线失败', err);
     }
+    // setData 会清掉所有 priceLine，需要重画 watch 线
+    state.watchLines.clear();
+    if (typeof refreshWatchLines === 'function') refreshWatchLines();
+    if (typeof syncDefaultSymbolToForm === 'function') syncDefaultSymbolToForm();
   }
 
   // ====== 事件流 ======
@@ -373,6 +382,31 @@
       }
       refreshPlanList(); refreshPlanSelect(); loadTrades();
     });
+    // 监测点事件
+    es.addEventListener('watch:new', (e) => {
+      const w = JSON.parse(e.data);
+      state.watches.set(w.id, w);
+      pushEvent('WATCH+', `${w.symbol} ${w.direction} @ ${fmt(w.price, 2)}`, 'watch');
+      refreshWatchList();
+      refreshWatchLines();
+    });
+    es.addEventListener('watch:trigger', (e) => {
+      const w = JSON.parse(e.data);
+      pushEvent('WATCH!', `${w.symbol} ${fmt(w.triggeredPrice, 2)} 穿越 ${fmt(w.price, 2)}`, 'watch');
+      const line = state.watchLines.get(w.id);
+      if (line) {
+        line.applyOptions({ lineWidth: 4, color: '#ffffff' });
+        setTimeout(() => line.applyOptions({ lineWidth: 1, color: WATCH_COLOR }), 1400);
+      }
+      flashScreen('watch');
+      Sound.watch?.();
+    });
+    es.addEventListener('watch:removed', (e) => {
+      const w = JSON.parse(e.data);
+      state.watches.delete(w.id);
+      refreshWatchList();
+      refreshWatchLines();
+    });
     es.onerror = () => setConn(false);
   }
 
@@ -418,6 +452,99 @@
     }
   }
 
+  // ====== 监测点（Watch） ======
+  const WATCH_COLOR = '#b069f5';
+
+  function refreshWatchLines() {
+    // 清掉所有旧线
+    for (const [, line] of state.watchLines) {
+      try { candleSeries.removePriceLine(line); } catch (_) { /* ignore */ }
+    }
+    state.watchLines.clear();
+    // 仅当 watch.symbol === 当前图表 symbol 时画线
+    for (const w of state.watches.values()) {
+      if (w.symbol !== state.klineSymbol) continue;
+      const dirArrow = { up: '↑', down: '↓', cross: '↕' }[w.direction] || '↕';
+      const title = `${dirArrow} ${fmt(w.price, 2)}${w.note ? ' · ' + w.note : ''}`;
+      const line = candleSeries.createPriceLine({
+        price: w.price, color: WATCH_COLOR, title,
+        lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted,
+        axisLabelVisible: true,
+      });
+      state.watchLines.set(w.id, line);
+    }
+  }
+
+  function refreshWatchList() {
+    const ul = $('#watchList');
+    ul.innerHTML = '';
+    const list = Array.from(state.watches.values()).sort((a, b) => b.createdAt - a.createdAt);
+    if (list.length === 0) {
+      ul.innerHTML = '<li style="color:#8b93a7;cursor:default">暂无监测点</li>';
+      return;
+    }
+    const dirLabel = { up: '↑ 上穿', down: '↓ 下穿', cross: '↕ 穿越' };
+    for (const w of list) {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="w-dir ${w.direction}">${dirLabel[w.direction] || w.direction}</span>
+        <span class="w-symbol">${w.symbol}</span>
+        <span class="w-price">${fmt(w.price, 2)}</span>
+        ${w.note ? `<span class="w-note">${escapeHtml(w.note)}</span>` : ''}
+        ${w.once ? '' : '<span class="w-once">持续</span>'}
+        <button class="w-del" data-id="${w.id}">×</button>
+      `;
+      ul.appendChild(li);
+    }
+    ul.querySelectorAll('.w-del').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        await fetch('/api/watches/' + encodeURIComponent(id), { method: 'DELETE' });
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  $('#watchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = {
+      symbol: $('#wfSymbol').value.trim().toUpperCase(),
+      price: parseFloat($('#wfPrice').value),
+      direction: $('#wfDirection').value,
+      once: $('#wfOnce').checked,
+      note: $('#wfNote').value.trim(),
+    };
+    const r = await fetch('/api/watches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!j.ok) { alert('添加失败: ' + j.error); return; }
+    $('#wfPrice').value = '';
+    $('#wfNote').value = '';
+  });
+
+  // 默认 symbol 表单字段联动：在切换图表 symbol 时同步
+  function syncDefaultSymbolToForm() {
+    const cur = state.klineSymbol || getDefaultSymbol();
+    if (!$('#wfSymbol').value) $('#wfSymbol').value = cur;
+  }
+
+  async function loadWatches() {
+    const r = await fetch('/api/watches');
+    const j = await r.json();
+    if (!j.ok) return;
+    state.watches.clear();
+    for (const w of j.watches) state.watches.set(w.id, w);
+    refreshWatchList();
+    refreshWatchLines();
+  }
+
   // ====== 静音按钮 ======
   function refreshMuteBtn() {
     $('#muteBtn').textContent = Sound.muted ? '🔇' : '🔊';
@@ -428,5 +555,7 @@
 
   loadActivePlans();
   loadTrades();
+  loadWatches();
   connectSSE();
+  syncDefaultSymbolToForm();
 })();

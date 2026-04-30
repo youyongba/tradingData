@@ -5,7 +5,9 @@ const cors = require('cors');
 const config = require('./config');
 const log = require('./utils/logger');
 
-require('./services/engine'); // 初始化引擎（恢复活跃计划）
+require('./services/engine');       // 初始化交易计划引擎
+require('./services/watch');        // 初始化价格监测点引擎
+require('./services/watch');  // 初始化监测点服务（恢复持久化的 watches）
 
 const webhookRouter = require('./routes/webhook');
 const apiRouter = require('./routes/api');

@@ -228,6 +228,64 @@ body {
 .trade-list .tr-symbol { flex: 1; }
 .trade-list .tr-reason { color: var(--text-dim); font-size: 10px; }
 
+/* ===== 监测点 ===== */
+.watch-form {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.watch-row { display: flex; gap: 6px; align-items: center; }
+.watch-row input[type="text"], .watch-row input[type="number"], .watch-row input:not([type]) {
+  flex: 1;
+  background: var(--bg-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 4px 8px; outline: none; font-size: 12px;
+}
+.watch-row input:focus { border-color: var(--accent); }
+.watch-row select {
+  background: var(--bg-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 4px 6px; font-size: 12px; flex: 1; outline: none;
+}
+.watch-once { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 4px; }
+.watch-once input { margin: 0; }
+.watch-row button {
+  background: var(--accent); color: #fff; border: 0;
+  border-radius: 4px; padding: 4px 12px; cursor: pointer; font-size: 12px;
+}
+.watch-row button:hover { filter: brightness(1.1); }
+
+.watch-list {
+  list-style: none; margin: 0; padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 80px;
+}
+.watch-list li {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px;
+}
+.watch-list li:hover { background: var(--panel); }
+.watch-list .w-dir {
+  font-weight: 700; padding: 1px 5px; border-radius: 3px; font-size: 10px;
+}
+.w-dir.up    { background: rgba(38,166,154,.2); color: var(--green-2); }
+.w-dir.down  { background: rgba(239,83,80,.2);  color: var(--red-2); }
+.w-dir.cross { background: rgba(79,140,255,.2); color: var(--accent); }
+.watch-list .w-symbol { font-weight: 600; min-width: 70px; }
+.watch-list .w-price { font-variant-numeric: tabular-nums; flex: 1; color: var(--yellow); }
+.watch-list .w-note { color: var(--text-dim); font-size: 11px; }
+.watch-list .w-once { color: var(--text-dim); font-size: 10px; }
+.watch-list .w-del {
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 1px 6px; cursor: pointer; font-size: 11px;
+}
+.watch-list .w-del:hover { color: var(--red-2); border-color: var(--red); }
+
 /* 闪烁 */
 @keyframes pulse-bg {
   0%   { background: rgba(255,255,255,0); }
@@ -246,3 +304,7 @@ body {
 .flash-overlay.tp    { background: var(--green-2); }
 .flash-overlay.sl    { background: var(--red-2); }
 .flash-overlay.be    { background: var(--yellow); }
+.flash-overlay.watch { background: #b069f5; }
+
+/* 事件流：watch 标签 */
+.ev-tag.watch { background: rgba(176,105,245,.2); color: #c79bff; }

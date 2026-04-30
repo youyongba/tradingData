@@ -1,6 +1,7 @@
 'use strict';
 const express = require('express');
 const engine = require('../services/engine');
+const watchService = require('../services/watch');
 const { fetchKlines, stream } = require('../services/binance');
 const { readTradeLog } = require('../utils/store');
 const bus = require('../services/eventBus');
@@ -61,6 +62,26 @@ router.get('/trades', (req, res) => {
   res.json({ ok: true, trades: readTradeLog(limit) });
 });
 
+// ===== 价格监测点（前端面板使用） =====
+router.get('/watches', (req, res) => {
+  res.json({ ok: true, watches: watchService.list() });
+});
+
+router.post('/watches', (req, res) => {
+  try {
+    const w = watchService.add(req.body || {});
+    res.json({ ok: true, watch: w });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+router.delete('/watches/:id', (req, res) => {
+  const w = watchService.remove(req.params.id);
+  if (!w) return res.status(404).json({ ok: false, error: '不存在' });
+  res.json({ ok: true, watch: w });
+});
+
 // SSE 实时事件
 router.get('/events', (req, res) => {
   res.set({
@@ -83,12 +104,18 @@ router.get('/events', (req, res) => {
   const onNew = (p) => send('plan:new', p);
   const onTrigger = (e) => send('plan:trigger', e);
   const onClosed = (p) => send('plan:closed', p);
+  const onWatchNew = (w) => send('watch:new', w);
+  const onWatchTrig = (w) => send('watch:trigger', w);
+  const onWatchRm = (w) => send('watch:removed', w);
 
   bus.on('mark', onMark);
   bus.on('kline', onKline);
   bus.on('plan:new', onNew);
   bus.on('plan:trigger', onTrigger);
   bus.on('plan:closed', onClosed);
+  bus.on('watch:new', onWatchNew);
+  bus.on('watch:trigger', onWatchTrig);
+  bus.on('watch:removed', onWatchRm);
 
   const ping = setInterval(() => res.write(`: ping ${Date.now()}\n\n`), 25000);
 
@@ -99,6 +126,9 @@ router.get('/events', (req, res) => {
     bus.off('plan:new', onNew);
     bus.off('plan:trigger', onTrigger);
     bus.off('plan:closed', onClosed);
+    bus.off('watch:new', onWatchNew);
+    bus.off('watch:trigger', onWatchTrig);
+    bus.off('watch:removed', onWatchRm);
   });
 });
 

@@ -69,6 +69,28 @@
         <ul id="planList" class="plan-list"></ul>
       </div>
       <div class="panel">
+        <div class="panel-title">价格监测点</div>
+        <form id="watchForm" class="watch-form">
+          <div class="watch-row">
+            <input id="wfSymbol" placeholder="BTCUSDT" required maxlength="20" />
+            <input id="wfPrice" type="number" step="any" placeholder="价位" required />
+          </div>
+          <div class="watch-row">
+            <select id="wfDirection">
+              <option value="cross">↕ 任意穿越</option>
+              <option value="up">↑ 上穿</option>
+              <option value="down">↓ 下穿</option>
+            </select>
+            <label class="watch-once"><input id="wfOnce" type="checkbox" checked /> 一次性</label>
+            <button type="submit">+ 添加</button>
+          </div>
+          <div class="watch-row">
+            <input id="wfNote" placeholder="备注（可选）" maxlength="40" />
+          </div>
+        </form>
+        <ul id="watchList" class="watch-list"></ul>
+      </div>
+      <div class="panel">
         <div class="panel-title">事件流</div>
         <ul id="eventList" class="event-list"></ul>
       </div>

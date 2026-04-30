@@ -5,6 +5,7 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 const ACTIVE_FILE = path.join(DATA_DIR, 'active.json');
 const TRADES_LOG = path.join(DATA_DIR, 'trades.log');
+const WATCHES_FILE = path.join(DATA_DIR, 'watches.json');
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -40,4 +41,23 @@ function readTradeLog(limit = 200) {
   }).filter(Boolean);
 }
 
-module.exports = { readActive, writeActive, appendTradeLog, readTradeLog };
+function readWatches() {
+  ensureDir();
+  if (!fs.existsSync(WATCHES_FILE)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(WATCHES_FILE, 'utf8') || '{}');
+  } catch (_) {
+    return {};
+  }
+}
+
+function writeWatches(map) {
+  ensureDir();
+  fs.writeFileSync(WATCHES_FILE, JSON.stringify(map, null, 2));
+}
+
+module.exports = {
+  readActive, writeActive,
+  appendTradeLog, readTradeLog,
+  readWatches, writeWatches,
+};

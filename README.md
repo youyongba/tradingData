@@ -177,19 +177,75 @@ RUNNING_BE ──(price 触及 tp3 / SL)──► CLOSED  · 写入 trades.log
 
 ---
 
+## 价格监测点（Watch）
+
+独立于交易计划的轻量预警：随时给任意 symbol 添加任意价位，价格穿越时高亮 + 音效 + TG 推送。**不需要先有计划，也不影响计划状态。**
+
+**字段**：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `symbol` | ✅ | 如 `BTCUSDT` |
+| `price` | ✅ | 监测价位（正数） |
+| `direction` | | `cross`（默认，任一方向首次穿越）/ `up`（从下穿上）/ `down`（从上穿下） |
+| `once` | | 默认 `true`（触发后自动删除）；`false` 表示持续提醒（每次穿越都触发） |
+| `note` | | 备注（≤200 字） |
+
+**前端使用**：右侧"价格监测点"面板内直接表单提交，可即时画在图表上（紫色虚线）。
+
+**Webhook 使用**（外部如 TradingView 信号也能调用，需鉴权）：
+
+```bash
+# 单个
+curl -X POST http://localhost:8787/webhook/watch \
+  -H "Authorization: Bearer change-me-please" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT","price":75000,"direction":"down","note":"关键支撑","once":true}'
+
+# 批量
+curl -X POST http://localhost:8787/webhook/watch \
+  -H "Authorization: Bearer change-me-please" \
+  -H "Content-Type: application/json" \
+  -d '{"watches":[
+    {"symbol":"BTCUSDT","price":80000,"direction":"up","note":"上方阻力"},
+    {"symbol":"ETHUSDT","price":3000,"direction":"cross","once":false}
+  ]}'
+
+# 删除
+curl -X POST http://localhost:8787/webhook/watch/cancel \
+  -H "Authorization: Bearer change-me-please" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol":"BTCUSDT"}'              # 同 symbol 全删
+  # 或 {"id":"watch-..."} 精确，{"all":true} 全清，{"symbol":"X","direction":"up"} 精确批量
+```
+
+**触发判定**：基于标记价格的"穿越"，需要先有一次基线 mark 才会判定（避免装载即触发）。
+- `up`   ：`lastPrice < target && newPrice >= target`
+- `down` ：`lastPrice > target && newPrice <= target`
+- `cross`：上面任一方向
+
+**持久化**：`data/watches.json`，重启自动恢复（已触发的一次性 watch 不会被恢复）。
+
+---
+
 ## REST / SSE 接口
 
 | 方法 & 路径 | 说明 |
 | --- | --- |
 | `POST /webhook` | 提交计划（鉴权） |
 | `POST /webhook/cancel` | 取消计划（鉴权，支持 id / symbol[+side] / all） |
+| `POST /webhook/watch` | 添加价格监测点（鉴权，单个或 `watches:[...]` 批量） |
+| `POST /webhook/watch/cancel` | 删除监测点（鉴权，支持 id / symbol[+direction] / all） |
 | `GET  /api/plans` | 当前活跃计划列表 |
+| `GET  /api/watches` | 当前监测点列表（前端面板使用） |
+| `POST /api/watches` | 新增监测点（前端表单使用） |
+| `DELETE /api/watches/:id` | 删除单个监测点 |
 | `GET  /api/plans/:id` | 单个计划详情 |
 | `DELETE /api/plans/:id` | 取消计划 |
 | `GET  /api/klines?symbol=BTCUSDT&limit=300` | 1H K线历史 |
 | `GET  /api/mark?symbol=BTCUSDT` | 当前缓存的标记价 |
 | `GET  /api/trades?limit=200` | 已结束交易盈亏记录 |
-| `GET  /api/events` | **SSE 总线**：`hello` / `mark` / `kline` / `plan:new` / `plan:trigger` / `plan:closed` |
+| `GET  /api/events` | **SSE 总线**：`hello` / `mark` / `kline` / `plan:new` / `plan:trigger` / `plan:closed` / `watch:new` / `watch:trigger` / `watch:removed` |
 
 ---
 

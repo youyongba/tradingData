@@ -3,6 +3,7 @@ const express = require('express');
 const config = require('../config');
 const { parsePlan } = require('../services/plan');
 const engine = require('../services/engine');
+const watchService = require('../services/watch');
 const log = require('../utils/logger');
 
 const router = express.Router();
@@ -69,6 +70,61 @@ router.post('/webhook/cancel', auth, (req, res) => {
     res.json({ ok: true, cancelled });
   } catch (err) {
     log.warn('取消计划失败:', err.message);
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * 添加价格监测点（无关交易计划，独立预警）
+ * Body:
+ *   {
+ *     "symbol": "BTCUSDT",
+ *     "price": 76500,
+ *     "direction": "cross" | "up" | "down",   // 默认 cross
+ *     "note": "关键阻力",
+ *     "once": true                              // 默认 true
+ *   }
+ *
+ * 也支持批量：传 watches: [...]
+ */
+router.post('/webhook/watch', auth, (req, res) => {
+  try {
+    const body = req.body || {};
+    const items = Array.isArray(body.watches) ? body.watches : [body];
+    const created = items.map((it) => watchService.add(it));
+    res.json({ ok: true, watches: created });
+  } catch (err) {
+    log.warn('添加监测点失败:', err.message);
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * 删除价格监测点
+ * Body 任一种：
+ *   { "id": "watch-..." }
+ *   { "symbol": "BTCUSDT" }
+ *   { "symbol": "BTCUSDT", "direction": "up" }
+ *   { "all": true }
+ */
+router.post('/webhook/watch/cancel', auth, (req, res) => {
+  try {
+    const { id, symbol, direction, all } = req.body || {};
+    if (id) {
+      const w = watchService.remove(String(id));
+      if (!w) return res.status(404).json({ ok: false, error: '不存在' });
+      return res.json({ ok: true, removed: [w] });
+    }
+    if (all) {
+      const removed = watchService.removeAll();
+      return res.json({ ok: true, removed });
+    }
+    if (!symbol) return res.status(400).json({ ok: false, error: '需提供 id / symbol / all' });
+    const removed = watchService.removeBySymbol(symbol, direction);
+    if (removed.length === 0) return res.status(404).json({ ok: false, error: '没有匹配的监测点' });
+    res.json({ ok: true, removed });
+  } catch (err) {
+    log.warn('删除监测点失败:', err.message);
     res.status(400).json({ ok: false, error: err.message });
   }
 });
