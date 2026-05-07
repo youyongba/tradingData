@@ -301,10 +301,6 @@
     } catch (err) {
       console.error('加载 K 线失败', err);
     }
-    // setData 会清掉所有 priceLine，需要重画 watch 线
-    state.watchLines.clear();
-    if (typeof refreshWatchLines === 'function') refreshWatchLines();
-    if (typeof syncDefaultSymbolToForm === 'function') syncDefaultSymbolToForm();
   }
 
   // ====== 事件流 ======
