@@ -47,6 +47,29 @@
     borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350',
   });
 
+  // ====== 右键复制价格 ======
+  let crosshairPrice = null;
+  chart.subscribeCrosshairMove((param) => {
+    if (param.point) {
+      crosshairPrice = candleSeries.coordinateToPrice(param.point.y);
+    } else {
+      crosshairPrice = null;
+    }
+  });
+
+  chartEl.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (crosshairPrice !== null) {
+      // 价格小于 1 的保留 4 位，大于 10 的保留 2 位
+      const decimals = crosshairPrice < 1 ? 4 : (crosshairPrice < 10 ? 3 : 2);
+      const p = crosshairPrice.toFixed(decimals);
+      navigator.clipboard.writeText(p).then(() => {
+        pushEvent('COPY', `已复制价格: ${p}`, 'watch');
+        flashScreen('watch');
+      }).catch(err => console.error('复制失败', err));
+    }
+  });
+
   let priceLines = []; // {type, line}
   function clearPriceLines() {
     for (const o of priceLines) candleSeries.removePriceLine(o.line);
@@ -567,7 +590,24 @@
     refreshWatchLines();
   }
 
-  // ====== 静音按钮 ======
+  // ====== 截屏 & 静音按钮 ======
+  $('#screenshotBtn').addEventListener('click', () => {
+    const canvas = chart.takeScreenshot();
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const sym = state.klineSymbol || 'Chart';
+      // 生成形如 202310251430 的时间串
+      const timeStr = fmtDateTime(Date.now()).replace(/[^\d]/g, '');
+      a.download = `${sym}-${timeStr}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      pushEvent('SNAP', `已保存图表截图`, 'new');
+      flashScreen('entry');
+    });
+  });
+
   function refreshMuteBtn() {
     $('#muteBtn').textContent = Sound.muted ? '🔇' : '🔊';
   }
