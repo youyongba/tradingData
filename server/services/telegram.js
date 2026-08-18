@@ -1,8 +1,14 @@
 'use strict';
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 const config = require('../config');
 const log = require('../utils/logger');
 const { agent } = require('../utils/proxy');
+
+// Create agents that force IPv4
+const httpAgent = new http.Agent({ family: 4 });
+const httpsAgent = new https.Agent({ family: 4 });
 
 async function sendMessage(text) {
   const { token, chatId } = config.telegram;
@@ -21,7 +27,8 @@ async function sendMessage(text) {
       },
       {
         timeout: 10000,
-        httpsAgent: agent || undefined,
+        httpAgent: agent ? undefined : httpAgent,
+        httpsAgent: agent || httpsAgent,
         proxy: agent ? false : undefined,
       }
     );
